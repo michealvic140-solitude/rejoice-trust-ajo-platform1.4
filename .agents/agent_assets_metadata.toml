@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "OPCsnafLsSzY6HtykmEZW"
+uri = "file://platform-code.tar.gz"
+type = "unspecified"
+title = "Platform Source Code"

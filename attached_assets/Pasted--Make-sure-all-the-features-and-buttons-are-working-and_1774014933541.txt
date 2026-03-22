@@ -1,0 +1,26 @@
+‎Make sure all the features and buttons are working and responding perfectly 100% accurate. make sure this is not a demo project, it should be real and ready for publishing, make sure all data is not saved local storage, it should be legit and real, users and admin won't be able to lose any of their data even when the project is being updated. All data are stored.
+‎Clear all 404 error message I'm this platform, everything should be working perfectly without error codes or error messages. make sure no features or buttons in this project is read me/read only
+‎
+‎make sure users can join any group and select any seat numbers, 
+‎Mke sure you didn't remove the live digital timer on the each group page. why did you remove the list of members in groups. (it state counting down only when admin make the group go live, the timer will refresh every 24hrs Daily)
+‎
+‎Make users that missed payment for the day as defaulter and send them notifications why and which seat they failed to pay for. 
+‎
+‎All payment is based on the amount of seat they choose.
+‎
+‎When admin pays disburses money to any member, make sure you mark them as disbursed and the number seat they received the payment for by admin. 
+‎(Note: disbursement is only made when the time for any seat to receive it's savings from admin)
+‎
+‎Make sure any body that has an account on this platform can join the groups and view the group. 
+‎
+‎I hope you didn't remove the members list like the current one in the page. 
+‎Make sure user can select seats and make payment for each seat they selected if they choose multiple seats. 
+‎
+‎If they choose multiple seats make sure their name is listed multiple times on the list in their groups. 
+‎
+‎Make sure you didn't change the codes for the groups features for users. 
+‎Make sure you didn't remove the defaulter code for this platform like the previous. Make sure admin can see list of members that the system added to defaulter list and admin can edit it too. 
+‎
+‎Make sure you add some admin features to anybody that the admin gives moderator role.(not all admin features but some limited features, moderator can also see tickets and reply to it. 
+‎
+‎All these features should be accurate from the imported codes and add the listed to it too if it's not found in the codes

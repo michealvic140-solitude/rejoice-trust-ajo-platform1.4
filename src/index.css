@@ -1,0 +1,402 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   REJOICE AJO - Luxury Fintech Design System
+   All colors MUST be HSL
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    /* Obsidian Dark Base */
+    --background: 0 0% 4%;
+    --foreground: 45 100% 90%;
+
+    --card: 0 0% 7%;
+    --card-foreground: 45 100% 90%;
+
+    --popover: 0 0% 6%;
+    --popover-foreground: 45 100% 90%;
+
+    /* Gold Primary */
+    --primary: 45 93% 47%;
+    --primary-foreground: 0 0% 4%;
+
+    /* Dark Glass Secondary */
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 45 100% 80%;
+
+    /* Muted dark */
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 55%;
+
+    /* Gold Accent */
+    --accent: 45 93% 47%;
+    --accent-foreground: 0 0% 4%;
+
+    /* Destructive Red */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 45 30% 18%;
+    --input: 0 0% 10%;
+    --ring: 45 93% 47%;
+
+    --radius: 0.75rem;
+
+    /* Gold glow */
+    --gold: 45 93% 47%;
+    --gold-dim: 45 60% 35%;
+    --gold-glow: 45 100% 60%;
+    --glass-bg: 0 0% 100% / 0.05;
+    --glass-border: 45 93% 47% / 0.2;
+    --glass-hover: 45 93% 47% / 0.08;
+
+    /* Status colors */
+    --success: 142 70% 45%;
+    --warning: 38 92% 50%;
+    --error: 0 72% 51%;
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 5%;
+    --sidebar-foreground: 45 100% 80%;
+    --sidebar-primary: 45 93% 47%;
+    --sidebar-primary-foreground: 0 0% 4%;
+    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent-foreground: 45 100% 80%;
+    --sidebar-border: 45 30% 15%;
+    --sidebar-ring: 45 93% 47%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+    background-color: #0a0a0a;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, hsla(45, 93%, 47%, 0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, hsla(45, 93%, 47%, 0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, hsla(0, 0%, 8%, 0.8) 0%, transparent 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Cinzel', serif;
+  }
+}
+
+/* ============================================
+   GLASSMORPHISM UTILITY CLASSES
+   ============================================ */
+@layer components {
+  .glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(234, 179, 8, 0.2);
+    border-radius: var(--radius);
+    transition: all 0.3s ease;
+  }
+
+  .glass-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(234, 179, 8, 0.4);
+    box-shadow: 0 0 24px rgba(234, 179, 8, 0.12), 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  .glass-card-static {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(234, 179, 8, 0.2);
+    border-radius: var(--radius);
+  }
+
+  .gold-glow {
+    box-shadow: 0 0 20px rgba(234, 179, 8, 0.3), 0 0 40px rgba(234, 179, 8, 0.1);
+  }
+
+  .gold-text {
+    color: hsl(45, 93%, 47%);
+    font-family: 'Cinzel', serif;
+  }
+
+  .gold-gradient-text {
+    background: linear-gradient(135deg, hsl(45, 93%, 47%), hsl(45, 100%, 65%), hsl(38, 92%, 50%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-family: 'Cinzel', serif;
+  }
+
+  .btn-gold {
+    background: linear-gradient(135deg, hsl(45, 93%, 47%), hsl(38, 92%, 42%));
+    color: hsl(0, 0%, 4%);
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.05em;
+    border: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(234, 179, 8, 0.3);
+  }
+
+  .btn-gold:hover {
+    background: linear-gradient(135deg, hsl(45, 100%, 55%), hsl(45, 93%, 47%));
+    box-shadow: 0 6px 25px rgba(234, 179, 8, 0.5);
+    transform: translateY(-1px);
+  }
+
+  .btn-glass {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    color: hsl(45, 93%, 47%);
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+
+  .btn-glass:hover {
+    background: rgba(234, 179, 8, 0.1);
+    border-color: rgba(234, 179, 8, 0.6);
+    box-shadow: 0 0 15px rgba(234, 179, 8, 0.2);
+  }
+
+  .status-pending {
+    background: rgba(234, 179, 8, 0.15);
+    color: hsl(45, 93%, 47%);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .status-approved {
+    background: rgba(34, 197, 94, 0.15);
+    color: hsl(142, 70%, 55%);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .status-declined {
+    background: rgba(239, 68, 68, 0.15);
+    color: hsl(0, 72%, 65%);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .slot-available {
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    color: hsl(142, 70%, 55%);
+  }
+
+  .slot-taken {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: hsl(0, 72%, 65%);
+    cursor: not-allowed;
+  }
+
+  .slot-locked {
+    background: rgba(234, 179, 8, 0.1);
+    border: 1px solid rgba(234, 179, 8, 0.4);
+    color: hsl(45, 93%, 47%);
+    cursor: not-allowed;
+  }
+
+  .slot-mine {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.3), rgba(234, 179, 8, 0.15));
+    border: 1px solid hsl(45, 93%, 47%);
+    color: hsl(45, 93%, 47%);
+    box-shadow: 0 0 10px rgba(234, 179, 8, 0.4);
+  }
+
+  .nav-link {
+    color: hsl(0, 0%, 70%);
+    transition: all 0.2s ease;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+
+  .nav-link:hover {
+    color: hsl(45, 93%, 47%);
+  }
+
+  .nav-link.active {
+    color: hsl(45, 93%, 47%);
+  }
+
+  .live-badge {
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.5);
+    color: hsl(142, 70%, 55%);
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    animation: pulse-green 2s infinite;
+  }
+
+  .vip-badge {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.3), rgba(234, 179, 8, 0.1));
+    border: 1px solid rgba(234, 179, 8, 0.5);
+    color: hsl(45, 93%, 47%);
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  .luxury-input {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(234, 179, 8, 0.2);
+    color: hsl(45, 100%, 90%);
+    border-radius: 0.5rem;
+    padding: 0.65rem 1rem;
+    width: 100%;
+    transition: all 0.2s ease;
+    font-size: 0.925rem;
+  }
+
+  .luxury-input:focus {
+    outline: none;
+    border-color: rgba(234, 179, 8, 0.6);
+    box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.08);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .luxury-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  .luxury-label {
+    color: hsl(45, 60%, 65%);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 0.35rem;
+    display: block;
+  }
+
+  .section-divider {
+    border-color: rgba(234, 179, 8, 0.15);
+  }
+
+  .scrollbar-gold::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .scrollbar-gold::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .scrollbar-gold::-webkit-scrollbar-thumb {
+    background: rgba(234, 179, 8, 0.3);
+    border-radius: 999px;
+  }
+
+  /* Animated particles background */
+  .particles-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .particle {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: rgba(234, 179, 8, 0.4);
+    animation: float-particle linear infinite;
+  }
+}
+
+/* ============================================
+   KEYFRAME ANIMATIONS
+   ============================================ */
+@layer utilities {
+  @keyframes float-particle {
+    0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 0.4; }
+    100% { transform: translateY(-10vh) translateX(20px); opacity: 0; }
+  }
+
+  @keyframes glow-pulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(234, 179, 8, 0.2); }
+    50% { box-shadow: 0 0 30px rgba(234, 179, 8, 0.5), 0 0 60px rgba(234, 179, 8, 0.2); }
+  }
+
+  @keyframes pulse-green {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes countdown-tick {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+    100% { transform: scale(1); }
+  }
+
+  .animate-fade-up {
+    animation: fade-up 0.6s ease forwards;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.3s ease forwards;
+  }
+
+  .animate-glow-pulse {
+    animation: glow-pulse 2s ease infinite;
+  }
+
+  .animate-countdown {
+    animation: countdown-tick 1s ease infinite;
+  }
+
+  .delay-100 { animation-delay: 0.1s; }
+  .delay-200 { animation-delay: 0.2s; }
+  .delay-300 { animation-delay: 0.3s; }
+  .delay-400 { animation-delay: 0.4s; }
+  .delay-500 { animation-delay: 0.5s; }
+}
