@@ -471,7 +471,7 @@ app.post("/api/announcements", adminOrModRequired, upload.fields([
 ]), async (req, res) => {
   try {
     const { title, body, type, targetGroupId } = req.body;
-    const files = req.files as { [key: string]: Express.Multer.File[] };
+    const files = req.files;
     
     const imageUrl = files?.image?.[0] ? `/uploads/${files.image[0].filename}` : req.body.imageUrl || null;
     const videoUrl = files?.video?.[0] ? `/uploads/${files.video[0].filename}` : req.body.videoUrl || null;
