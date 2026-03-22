@@ -29,7 +29,7 @@ interface Member {
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { groups, isLoggedIn, currentUser, refreshGroups } = useApp();
+  const { groups, isLoggedIn, currentUser, refreshGroups, loading: appLoading } = useApp();
 
   const [slots, setSlots] = useState<Slot[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -56,7 +56,7 @@ export default function GroupDetail() {
   const [slotsLoading, setSlotsLoading] = useState(true);
   const chatRef = useRef<HTMLDivElement>(null);
 
-  const group = groups.find(g => g.id === id);
+  const group = groups.find(g => String(g.id) === id);
 
   // ── Countdown timer — always runs, counts down to midnight GMT+1 ──────────
   useEffect(() => {
@@ -105,6 +105,11 @@ export default function GroupDetail() {
     return () => clearInterval(iv);
   }, [id, isLoggedIn]);
 
+  if (appLoading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-gold font-cinzel text-sm animate-pulse">Loading group…</div>
+    </div>
+  );
   if (!group) return <Navigate to="/groups" replace />;
 
   const pad = (n: number) => n.toString().padStart(2, "0");
