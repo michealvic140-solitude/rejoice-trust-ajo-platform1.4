@@ -32,7 +32,7 @@ export default function GroupCard({ group }: GroupCardProps) {
       <div className="flex items-center justify-between mb-4">
         <div>
           <p className="text-muted-foreground text-[11px] uppercase tracking-widest">Contribution</p>
-          <p className="text-foreground font-bold text-xl">₦{group.contributionAmount.toLocaleString()}</p>
+          <p className="text-foreground font-bold text-xl">👑{group.contributionAmount.toLocaleString()}</p>
         </div>
         <div className="text-right">
           <p className="text-muted-foreground text-[11px] uppercase tracking-widest">Cycle</p>

@@ -205,7 +205,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-foreground text-sm font-semibold truncate">{g.name}</p>
-                    <p className="text-muted-foreground text-xs">₦{g.contributionAmount.toLocaleString()} · {g.cycleType}</p>
+                    <p className="text-muted-foreground text-xs">👑{g.contributionAmount.toLocaleString()} · {g.cycleType}</p>
                   </div>
                   {g.isLive && <span className="live-badge shrink-0 text-[9px]">● LIVE</span>}
                   <ChevronRight size={13} className="text-muted-foreground group-hover:text-gold transition-colors shrink-0" />
@@ -226,7 +226,7 @@ export default function Dashboard() {
             {/* Mini stats */}
             <div className="grid grid-cols-2 gap-3">
               {[
-                { icon: Wallet, label: "Total Paid", value: `₦${(currentUser?.totalPaid || 0).toLocaleString()}`, color: "text-gold" },
+                { icon: Wallet, label: "Total Paid", value: `👑${(currentUser?.totalPaid || 0).toLocaleString()}`, color: "text-gold" },
                 { icon: Clock,  label: "Pending",    value: transactions.filter(t => t.status === "pending").length.toString(), color: "text-amber-400" },
               ].map(s => (
                 <div

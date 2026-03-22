@@ -58,7 +58,14 @@ export default function Register() {
       setCurrentUser(data.user);
       navigate("/dashboard");
     } catch (err: unknown) {
-      setError((err as Error).message || "Registration failed. Please try again.");
+      const error = err as any;
+      if (error.code === "DUPLICATE_USERNAME") {
+        setError("This username is already taken. Please choose a different username.");
+      } else if (error.code === "DUPLICATE_EMAIL") {
+        setError("This email is already registered. Please login or use a different email.");
+      } else {
+        setError(error.message || "Registration failed. Please try again.");
+      }
     }
     setLoading(false);
   };
