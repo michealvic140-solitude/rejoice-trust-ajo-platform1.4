@@ -26,6 +26,7 @@ export default function Navbar() {
         background: "rgba(10,10,10,0.72)",
         backdropFilter: "blur(24px)",
         WebkitBackdropFilter: "blur(24px)",
+        animation: "navbarGradient 6s ease-in-out infinite",
       }}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
@@ -50,7 +51,7 @@ export default function Navbar() {
                 backgroundClip: "text",
               }}
             >
-              ₦ RTA
+              👑 RTA
             </span>
           </div>
           {/* Full name — hidden on very small screens */}
@@ -64,9 +65,9 @@ export default function Navbar() {
                 backgroundClip: "text",
               }}
             >
-              REJOICE AJO
+              REJOICE TRUST AJO
             </span>
-            <span className="text-muted-foreground text-[9px] tracking-widest uppercase">Trust Platform</span>
+            <span className="text-muted-foreground text-[9px] tracking-widest uppercase">Savings Platform</span>
           </div>
         </Link>
 

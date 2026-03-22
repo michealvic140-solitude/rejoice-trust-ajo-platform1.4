@@ -53,9 +53,9 @@ export default function Transactions() {
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 animate-fade-up delay-100">
           {[
-            { label: "Total Approved", value: `₦${totalApproved.toLocaleString()}`, color: "text-emerald-400", icon: CheckCircle },
-            { label: "Pending Review", value: `₦${totalPending.toLocaleString()}`, color: "text-amber-400", icon: Clock },
-            { label: "All-Time Paid", value: `₦${(currentUser?.totalPaid || 0).toLocaleString()}`, color: "text-gold", icon: Wallet },
+            { label: "Total Approved", value: `👑${totalApproved.toLocaleString()}`, color: "text-emerald-400", icon: CheckCircle },
+            { label: "Pending Review", value: `👑${totalPending.toLocaleString()}`, color: "text-amber-400", icon: Clock },
+            { label: "All-Time Paid", value: `👑${(currentUser?.totalPaid || 0).toLocaleString()}`, color: "text-gold", icon: Wallet },
           ].map(s => (
             <div key={s.label} className="glass-card-static rounded-2xl p-5">
               <s.icon size={20} className={`${s.color} mb-3`} />

@@ -7,8 +7,8 @@ import ParticleBackground from "@/components/ParticleBackground";
 
 const Coin = ({ style }: { style: React.CSSProperties }) => (
   <div className="absolute rounded-full flex items-center justify-center font-black select-none pointer-events-none"
-    style={{ width: 56, height: 56, background: "radial-gradient(circle at 35% 35%, hsl(45,100%,72%), hsl(38,92%,40%), hsl(30,85%,25%))", boxShadow: "0 4px 20px rgba(234,179,8,0.5), inset 0 1px 2px rgba(255,255,255,0.3)", color: "hsl(45,93%,30%)", fontSize: 22, ...style }}>
-    ₦
+    style={{ width: 56, height: 56, background: "radial-gradient(circle at 35% 35%, hsl(45,100%,72%), hsl(38,92%,40%), hsl(30,85%,25%))", boxShadow: "0 4px 20px rgba(234,179,8,0.5), inset 0 1px 2px rgba(255,255,255,0.3)", color: "hsl(45,93%,30%)", fontSize: 28, ...style }}>
+    👑
   </div>
 );
 
