@@ -692,4 +692,8 @@ process.on("SIGTERM", () => {
   pool.end(() => process.exit(0));
 });
 
+// Export as Vercel serverless function
 export default app;
+
+// Also export as a handler for Vercel
+export const handler = app;
