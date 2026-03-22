@@ -5,9 +5,9 @@ import {
   Users, BarChart3, Shield, FileText, Bell, Ban, Star, Lock,
   Search, AlertTriangle, CheckCircle, X, MessageSquare,
   UserX, UserCheck, Crown, Eye, EyeOff, Edit, Send, Plus, Megaphone, ListChecks,
-  TrendingUp, LogOut, Trash2, Phone, Key,
+  TrendingUp, LogOut, Trash2, Phone, Key, Mail, Image, Video,
   ToggleLeft, ToggleRight, Facebook, CreditCard, Reply, Tag, Info,
-  ChevronRight, RefreshCw, Wallet, Settings
+  ChevronRight, RefreshCw, Wallet, Settings, MinusCircle
 } from "lucide-react";
 import ParticleBackground from "@/components/ParticleBackground";
 import { api } from "@/lib/api";
@@ -15,25 +15,26 @@ import type { Announcement, SupportTicket } from "@/context/AppContext";
 
 type SideTab =
   | "overview" | "users" | "groups" | "payments"
-  | "announcements" | "seat-changes" | "defaulters"
+  | "announcements" | "seat-changes" | "seat-removals" | "defaulters"
   | "audit" | "exit-requests" | "live-groups" | "tags"
   | "support" | "contact-info" | "group-messages";
 
 const SIDEBAR_ITEMS: { id: SideTab; icon: React.FC<{ size?: number }>; label: string; adminOnly?: boolean }[] = [
   { id: "overview",       icon: BarChart3,     label: "Overview" },
-  { id: "users",          icon: Users,         label: "Users",           adminOnly: true },
-  { id: "groups",         icon: Shield,        label: "Groups",          adminOnly: true },
-  { id: "payments",       icon: FileText,      label: "Payments",        adminOnly: true },
+  { id: "users",          icon: Users,         label: "Users",            adminOnly: true },
+  { id: "groups",         icon: Shield,        label: "Groups",           adminOnly: true },
+  { id: "payments",       icon: FileText,      label: "Payments",         adminOnly: true },
   { id: "announcements",  icon: Megaphone,     label: "Announcements" },
   { id: "group-messages", icon: MessageSquare, label: "Group Messages" },
   { id: "support",        icon: Bell,          label: "Support Tickets" },
-  { id: "contact-info",   icon: Phone,         label: "Contact Info",    adminOnly: true },
-  { id: "seat-changes",   icon: ListChecks,    label: "Seat Changes",    adminOnly: true },
-  { id: "defaulters",     icon: AlertTriangle, label: "Defaulters",      adminOnly: true },
-  { id: "exit-requests",  icon: LogOut,        label: "Exit Requests",   adminOnly: true },
-  { id: "live-groups",    icon: TrendingUp,    label: "Live Groups",     adminOnly: true },
-  { id: "audit",          icon: FileText,      label: "Audit Logs",      adminOnly: true },
-  { id: "tags",           icon: Star,          label: "VIP Tags",        adminOnly: true },
+  { id: "contact-info",   icon: Phone,         label: "Contact Info",     adminOnly: true },
+  { id: "seat-changes",   icon: ListChecks,    label: "Seat Changes",     adminOnly: true },
+  { id: "seat-removals",  icon: MinusCircle,   label: "Seat Removals",    adminOnly: true },
+  { id: "defaulters",     icon: AlertTriangle, label: "Defaulters",       adminOnly: true },
+  { id: "exit-requests",  icon: LogOut,        label: "Exit Requests",    adminOnly: true },
+  { id: "live-groups",    icon: TrendingUp,    label: "Live Groups",      adminOnly: true },
+  { id: "audit",          icon: FileText,      label: "Audit Logs",       adminOnly: true },
+  { id: "tags",           icon: Star,          label: "VIP Tags",         adminOnly: true },
 ];
 
 const Btn = ({ onClick, children, variant = "glass", size = "sm", className = "", disabled = false }: {
@@ -134,14 +135,17 @@ export default function Admin() {
   };
 
   // Data loaded from API
-  const [adminUsers, setAdminUsers]       = useState<Record<string, unknown>[]>([]);
-  const [adminPayments, setAdminPayments] = useState<Record<string, unknown>[]>([]);
-  const [defaulters, setDefaulters]       = useState<Record<string, unknown>[]>([]);
-  const [exitRequests, setExitRequests]   = useState<Record<string, unknown>[]>([]);
-  const [seatChanges, setSeatChanges]     = useState<Record<string, unknown>[]>([]);
-  const [auditLogs, setAuditLogs]         = useState<Record<string, unknown>[]>([]);
-  const [stats, setStats]                 = useState({ totalUsers: 0, activeGroups: 0, pendingPayments: 0, openTickets: 0, totalDefaulters: 0 });
-  const [loading, setLoading]             = useState(false);
+  const [adminUsers, setAdminUsers]             = useState<Record<string, unknown>[]>([]);
+  const [adminPayments, setAdminPayments]       = useState<Record<string, unknown>[]>([]);
+  const [defaulters, setDefaulters]             = useState<Record<string, unknown>[]>([]);
+  const [exitRequests, setExitRequests]         = useState<Record<string, unknown>[]>([]);
+  const [seatChanges, setSeatChanges]           = useState<Record<string, unknown>[]>([]);
+  const [seatRemovals, setSeatRemovals]         = useState<Record<string, unknown>[]>([]);
+  const [auditLogs, setAuditLogs]               = useState<Record<string, unknown>[]>([]);
+  const [stats, setStats]                       = useState({ totalUsers: 0, activeGroups: 0, pendingPayments: 0, openTickets: 0, totalDefaulters: 0 });
+  const [loading, setLoading]                   = useState(false);
+  const [showTrustScore, setShowTrustScore]     = useState<string | null>(null);
+  const [trustScoreValue, setTrustScoreValue]   = useState("");
 
   // Modals
   const [showReminderModal, setShowReminderModal]   = useState(false);
@@ -158,6 +162,9 @@ export default function Admin() {
   const [annTitle, setAnnTitle]               = useState("");
   const [annBody, setAnnBody]                 = useState("");
   const [annType, setAnnType]                 = useState<Announcement["type"]>("announcement");
+  const [annMediaType, setAnnMediaType]       = useState<"none" | "image" | "video">("none");
+  const [annMediaFile, setAnnMediaFile]       = useState<File | null>(null);
+  const annMediaRef = useRef<HTMLInputElement>(null);
   const [groupMsgTarget, setGroupMsgTarget]   = useState("");
   const [groupMsgBody, setGroupMsgBody]       = useState("");
   const [supportReplyText, setSupportReplyText] = useState("");
@@ -188,13 +195,14 @@ export default function Admin() {
     setLoading(true);
     try {
       switch (tab) {
-        case "overview":   setStats(await api.get("/api/admin/overview-stats")); break;
-        case "users":      setAdminUsers(await api.get("/api/admin/users")); break;
-        case "payments":   setAdminPayments(await api.get("/api/admin/payments")); break;
-        case "defaulters": setDefaulters(await api.get("/api/admin/defaulters")); break;
+        case "overview":      setStats(await api.get("/api/admin/overview-stats")); break;
+        case "users":         setAdminUsers(await api.get("/api/admin/users")); break;
+        case "payments":      setAdminPayments(await api.get("/api/admin/payments")); break;
+        case "defaulters":    setDefaulters(await api.get("/api/admin/defaulters")); break;
         case "exit-requests": setExitRequests(await api.get("/api/admin/exit-requests")); break;
         case "seat-changes":  setSeatChanges(await api.get("/api/admin/seat-changes")); break;
-        case "audit":      setAuditLogs(await api.get("/api/admin/audit-logs")); break;
+        case "seat-removals": setSeatRemovals(await api.get("/api/admin/seat-removals")); break;
+        case "audit":         setAuditLogs(await api.get("/api/admin/audit-logs")); break;
         case "groups": case "live-groups": await refreshGroups(); break;
         default: break;
       }
@@ -243,9 +251,37 @@ export default function Admin() {
   const submitAnnouncement = async () => {
     if (!annTitle || !annBody) return;
     try {
-      const ann = await api.post("/api/announcements", { title: annTitle, body: annBody, type: annType });
+      let ann;
+      if (annMediaFile) {
+        const fd = new FormData();
+        fd.append("title", annTitle);
+        fd.append("body", annBody);
+        fd.append("type", annType);
+        fd.append("mediaType", annMediaType);
+        fd.append("media", annMediaFile);
+        ann = await api.postForm("/api/announcements", fd);
+      } else {
+        ann = await api.post("/api/announcements", { title: annTitle, body: annBody, type: annType });
+      }
       setAnnouncements(prev => [ann, ...prev]);
-      setAnnTitle(""); setAnnBody(""); setShowAnnouncement(false);
+      setAnnTitle(""); setAnnBody(""); setAnnMediaType("none"); setAnnMediaFile(null); setShowAnnouncement(false);
+    } catch (e) { alert((e as Error).message); }
+  };
+
+  const saveTrustScore = async (userId: string) => {
+    try {
+      await api.patch(`/api/admin/users/${userId}/trust-score`, { trustScore: trustScoreValue });
+      const updated = await api.get("/api/admin/users");
+      setAdminUsers(updated);
+      setShowTrustScore(null); setTrustScoreValue("");
+      alert("Trust score updated!");
+    } catch (e) { alert((e as Error).message); }
+  };
+
+  const doSeatRemoval = async (id: string, status: string) => {
+    try {
+      await api.patch(`/api/admin/seat-removals/${id}`, { status });
+      setSeatRemovals(prev => prev.map((r: Record<string, unknown>) => r.id === id ? { ...r, status } : r));
     } catch (e) { alert((e as Error).message); }
   };
 
@@ -485,6 +521,7 @@ export default function Admin() {
                       <Btn size="xs" variant="gold" onClick={() => doUserAction(u.id as string, "vip")}><Crown size={10} />{u.isVip ? "Remove VIP" : "Make VIP"}</Btn>
                       <Btn size="xs" variant="glass" onClick={() => doUserAction(u.id as string, "moderator")}><Star size={10} />{u.role === "moderator" ? "Remove Mod" : "Make Mod"}</Btn>
                       <Btn size="xs" variant="glass" onClick={() => setShowPasswordReset(u.id as string)}><Key size={10} />Reset Pw</Btn>
+                      <Btn size="xs" variant="amber" onClick={() => { setShowTrustScore(u.id as string); setTrustScoreValue(String(u.trustScore ?? 80)); }}><Star size={10} />Trust: {u.trustScore ?? 80}</Btn>
                     </div>
                   </TD>
                 </TR>
@@ -789,6 +826,35 @@ export default function Admin() {
           </div>
         )}
 
+        {/* ══ SEAT REMOVALS ════════════════════════════════════════════════════ */}
+        {sideTab === "seat-removals" && isAdmin && (
+          <div>
+            <SectionHeader title="Seat Removal Requests" sub="Users requesting removal of a specific seat"
+              actions={<Btn onClick={() => loadData("seat-removals")} variant="glass"><RefreshCw size={12} /></Btn>} />
+            <Table cols={["User", "Group", "Seat", "Reason", "Status", "Date", "Actions"]}>
+              {seatRemovals.map((r: Record<string, unknown>) => (
+                <TR key={r.id as string}>
+                  <TD><span className="text-foreground font-semibold">@{r.username as string}</span></TD>
+                  <TD><span className="text-muted-foreground">{r.groupName as string}</span></TD>
+                  <TD><span className="text-amber-400 font-bold">#{r.seatNo as number}</span></TD>
+                  <TD><span className="text-muted-foreground max-w-xs truncate block">{r.reason as string}</span></TD>
+                  <TD><StatusBadge status={(r.status as string) || "pending"} /></TD>
+                  <TD><span className="text-muted-foreground">{new Date(r.createdAt as string).toLocaleDateString()}</span></TD>
+                  <TD>
+                    {(!r.status || r.status === "pending") && (
+                      <div className="flex gap-1">
+                        <Btn size="xs" variant="green" onClick={() => doSeatRemoval(r.id as string, "approved")}><CheckCircle size={10} />Approve</Btn>
+                        <Btn size="xs" variant="red" onClick={() => doSeatRemoval(r.id as string, "rejected")}><X size={10} />Reject</Btn>
+                      </div>
+                    )}
+                  </TD>
+                </TR>
+              ))}
+              {seatRemovals.length === 0 && <TR><TD className="text-center text-muted-foreground py-6">No seat removal requests.</TD></TR>}
+            </Table>
+          </div>
+        )}
+
         {/* ══ AUDIT LOGS ══════════════════════════════════════════════════════ */}
         {sideTab === "audit" && isAdmin && (
           <div>
@@ -890,7 +956,57 @@ export default function Admin() {
                 <option value="server-update">Server Update</option>
               </select>
             </div>
-            <div className="flex gap-3"><Btn variant="glass" onClick={() => setShowAnnouncement(false)}>Cancel</Btn><Btn variant="gold" onClick={submitAnnouncement}><Send size={12} />Publish</Btn></div>
+            <div>
+              <label className="luxury-label">Media (Optional)</label>
+              <div className="flex gap-2 mb-2">
+                {(["none", "image", "video"] as const).map(t => (
+                  <button key={t} type="button"
+                    onClick={() => { setAnnMediaType(t); setAnnMediaFile(null); if (annMediaRef.current) annMediaRef.current.value = ""; }}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${annMediaType === t ? "bg-gold/20 border-gold/50 text-gold" : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/20"}`}>
+                    {t === "none" && <X size={10} />}
+                    {t === "image" && <Image size={10} />}
+                    {t === "video" && <Video size={10} />}
+                    {t === "none" ? "No Media" : t.charAt(0).toUpperCase() + t.slice(1)}
+                  </button>
+                ))}
+              </div>
+              {annMediaType !== "none" && (
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-dashed border-gold/30 bg-gold/5 cursor-pointer hover:border-gold/50 transition-all">
+                  <div className="text-gold">{annMediaType === "image" ? <Image size={16} /> : <Video size={16} />}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-foreground font-semibold truncate">{annMediaFile ? annMediaFile.name : `Click to upload ${annMediaType}`}</p>
+                    <p className="text-[10px] text-muted-foreground">Optional — max 10MB</p>
+                  </div>
+                  <input ref={annMediaRef} type="file" accept={annMediaType === "image" ? "image/*" : "video/*"} className="hidden"
+                    onChange={e => setAnnMediaFile(e.target.files?.[0] || null)} />
+                </label>
+              )}
+            </div>
+            <div className="flex gap-3"><Btn variant="glass" onClick={() => { setShowAnnouncement(false); setAnnMediaType("none"); setAnnMediaFile(null); }}>Cancel</Btn><Btn variant="gold" onClick={submitAnnouncement}><Send size={12} />Publish</Btn></div>
+          </div>
+        </Modal>
+      )}
+
+      {showTrustScore && (
+        <Modal title="Set Trust Score" onClose={() => setShowTrustScore(null)}>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Set trust score for this user (0 = low trust, 100 = fully trusted).</p>
+            <div>
+              <label className="luxury-label">Trust Score (0–100)</label>
+              <input type="number" min="0" max="100" value={trustScoreValue}
+                onChange={e => setTrustScoreValue(e.target.value)} className="luxury-input" />
+              <div className="mt-2 flex items-center gap-2">
+                <div className="flex-1 h-2 rounded-full bg-white/10 overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-red-500 via-amber-400 to-green-500 rounded-full transition-all"
+                    style={{ width: `${Math.min(100, Math.max(0, Number(trustScoreValue)))}%` }} />
+                </div>
+                <span className="text-xs font-bold text-gold w-8">{trustScoreValue}%</span>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Btn variant="glass" onClick={() => setShowTrustScore(null)}>Cancel</Btn>
+              <Btn variant="gold" onClick={() => saveTrustScore(showTrustScore)}><Star size={12} />Save</Btn>
+            </div>
           </div>
         </Modal>
       )}

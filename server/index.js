@@ -402,6 +402,51 @@ app.post("/api/groups/:id/exit", authRequired, async (req, res) => {
   res.json({ success: true });
 });
 
+// POST /api/groups/:id/seat-removal  (user requests removal of a specific seat)
+app.post("/api/groups/:id/seat-removal", authRequired, async (req, res) => {
+  try {
+    const { seatNo, reason } = req.body;
+    if (!seatNo) return res.status(400).json({ error: "Seat number required" });
+    const { rows: user } = await db(`SELECT username, first_name FROM users WHERE id = $1`, [req.session.userId]);
+    const { rows: group } = await db(`SELECT name FROM groups WHERE id = $1`, [req.params.id]);
+    if (!group[0]) return res.status(404).json({ error: "Group not found" });
+    const { rows: slot } = await db(`SELECT * FROM slots WHERE group_id=$1 AND seat_no=$2 AND user_id=$3`, [req.params.id, seatNo, req.session.userId]);
+    if (!slot[0]) return res.status(400).json({ error: "You do not own this seat" });
+    await db(`INSERT INTO seat_removal_requests (user_id, username, group_id, group_name, seat_no, reason) VALUES ($1,$2,$3,$4,$5,$6)`,
+      [req.session.userId, user[0]?.username, req.params.id, group[0].name, seatNo, reason || "Personal reasons"]);
+    await addNotification(req.session.userId, `Dear ${user[0]?.first_name}, your seat removal request for Seat #${seatNo} in ${group[0].name} has been submitted. Admin will review it shortly.`);
+    res.json({ success: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// GET /api/admin/seat-removals
+app.get("/api/admin/seat-removals", adminRequired, async (req, res) => {
+  const { rows } = await db(`SELECT * FROM seat_removal_requests ORDER BY created_at DESC`);
+  res.json(rows.map(r => ({
+    id: r.id, userId: r.user_id, username: r.username, groupId: r.group_id,
+    groupName: r.group_name, seatNo: r.seat_no, reason: r.reason, status: r.status, createdAt: r.created_at,
+  })));
+});
+
+// PATCH /api/admin/seat-removals/:id
+app.patch("/api/admin/seat-removals/:id", adminRequired, async (req, res) => {
+  const { status } = req.body;
+  const { rows } = await db(`UPDATE seat_removal_requests SET status=$1 WHERE id=$2 RETURNING *`, [status, req.params.id]);
+  if (rows[0] && status === "approved") {
+    const r = rows[0];
+    await db(`UPDATE slots SET status='available', user_id=NULL WHERE group_id=$1 AND seat_no=$2`, [r.group_id, r.seat_no]);
+    await db(`UPDATE groups SET filled_slots = filled_slots - 1 WHERE id=$1`, [r.group_id]);
+    await addNotification(r.user_id, `Your seat removal request for Seat #${r.seat_no} in ${r.group_name} has been approved. The seat has been freed.`);
+    await addAuditLog(`Seat #${r.seat_no} removed for ${r.username} in ${r.group_name}`, req.session.userId, req.session.username, "edit");
+  } else if (rows[0] && status === "rejected") {
+    await addNotification(rows[0].user_id, `Your seat removal request for Seat #${rows[0].seat_no} in ${rows[0].group_name} has been rejected. Contact admin for more info.`);
+  }
+  res.json({ success: true });
+});
+
 // POST /api/groups/:id/payment  (submit payment)
 app.post("/api/groups/:id/payment", authRequired, upload.single("screenshot"), async (req, res) => {
   try {
@@ -455,21 +500,23 @@ app.get("/api/announcements", async (req, res) => {
   const { rows } = await db(`SELECT * FROM announcements ORDER BY created_at DESC`);
   res.json(rows.map(a => ({
     id: a.id, title: a.title, body: a.body, type: a.type,
-    imageUrl: a.image_url, targetGroupId: a.target_group_id,
+    imageUrl: a.image_url, videoUrl: a.video_url, targetGroupId: a.target_group_id,
     adminName: a.admin_name, createdAt: a.created_at,
   })));
 });
 
 // POST /api/announcements (admin/mod)
-app.post("/api/announcements", adminOrModRequired, upload.single("image"), async (req, res) => {
-  const { title, body, type, targetGroupId } = req.body;
-  const imageUrl = req.file ? `/uploads/${req.file.filename}` : req.body.imageUrl || null;
+app.post("/api/announcements", adminOrModRequired, upload.single("media"), async (req, res) => {
+  const { title, body, type, targetGroupId, mediaType } = req.body;
+  const uploadedUrl = req.file ? `/uploads/${req.file.filename}` : null;
+  const imageUrl = (!mediaType || mediaType === "image") ? (uploadedUrl || req.body.imageUrl || null) : null;
+  const videoUrl = (mediaType === "video") ? (uploadedUrl || req.body.videoUrl || null) : null;
   const { rows } = await db(
-    `INSERT INTO announcements (title, body, type, image_url, target_group_id, admin_name) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [title, body, type || "announcement", imageUrl, targetGroupId || null, req.session.username]
+    `INSERT INTO announcements (title, body, type, image_url, video_url, target_group_id, admin_name) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    [title, body, type || "announcement", imageUrl, videoUrl, targetGroupId || null, req.session.username]
   );
   const a = rows[0];
-  res.json({ id: a.id, title: a.title, body: a.body, type: a.type, imageUrl: a.image_url, targetGroupId: a.target_group_id, adminName: a.admin_name, createdAt: a.created_at });
+  res.json({ id: a.id, title: a.title, body: a.body, type: a.type, imageUrl: a.image_url, videoUrl: a.video_url, targetGroupId: a.target_group_id, adminName: a.admin_name, createdAt: a.created_at });
 });
 
 // DELETE /api/announcements/:id
@@ -552,11 +599,22 @@ app.get("/api/admin/users", adminRequired, async (req, res) => {
     id: u.id, username: u.username, email: u.email,
     fullName: `${u.first_name} ${u.last_name}`, firstName: u.first_name, lastName: u.last_name,
     phone: u.phone, dob: u.dob, state: u.current_state, lga: u.lga, address: u.current_address,
-    trustScore: 95, status: u.is_banned ? "banned" : u.is_frozen ? "frozen" : u.is_restricted ? "restricted" : "active",
+    trustScore: u.trust_score ?? 80, status: u.is_banned ? "banned" : u.is_frozen ? "frozen" : u.is_restricted ? "restricted" : "active",
     isVip: u.is_vip, role: u.role, isBanned: u.is_banned, isFrozen: u.is_frozen, isRestricted: u.is_restricted,
     bankAccName: u.bank_acc_name, bankAccNum: u.bank_acc_num, bankName: u.bank_name,
     totalPaid: Number(u.total_paid), createdAt: u.created_at,
   })));
+});
+
+// PATCH /api/admin/users/:id/trust-score
+app.patch("/api/admin/users/:id/trust-score", adminRequired, async (req, res) => {
+  const { trustScore } = req.body;
+  const score = Math.max(0, Math.min(100, parseInt(trustScore)));
+  if (isNaN(score)) return res.status(400).json({ error: "Invalid trust score" });
+  await db(`UPDATE users SET trust_score=$1 WHERE id=$2`, [score, req.params.id]);
+  const { rows: u } = await db(`SELECT username FROM users WHERE id=$1`, [req.params.id]);
+  await addAuditLog(`Trust score for ${u[0]?.username} set to ${score}`, req.session.userId, req.session.username, "edit");
+  res.json({ success: true, trustScore: score });
 });
 
 // PATCH /api/admin/users/:id

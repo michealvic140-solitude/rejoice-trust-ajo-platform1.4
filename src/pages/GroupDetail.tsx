@@ -3,7 +3,7 @@ import { useApp } from "@/context/AppContext";
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Send, Lock, Users, Upload, CheckCircle, X, LogOut,
-  ChevronDown, Bell, Clock, CreditCard, AlertTriangle
+  ChevronDown, Bell, Clock, CreditCard, AlertTriangle, MinusCircle
 } from "lucide-react";
 import ParticleBackground from "@/components/ParticleBackground";
 import { api } from "@/lib/api";
@@ -44,6 +44,10 @@ export default function GroupDetail() {
   const [showExitModal, setShowExitModal] = useState(false);
   const [exitRequested, setExitRequested] = useState(false);
   const [exitReason, setExitReason] = useState("");
+  const [showSeatRemovalModal, setShowSeatRemovalModal] = useState(false);
+  const [seatRemovalSeat, setSeatRemovalSeat] = useState<number | "">("");
+  const [seatRemovalReason, setSeatRemovalReason] = useState("");
+  const [seatRemovalDone, setSeatRemovalDone] = useState(false);
   const [showParticipants, setShowParticipants] = useState(true);
   const [showChat, setShowChat] = useState(true);
   const [showPayment, setShowPayment] = useState(false);
@@ -151,6 +155,17 @@ export default function GroupDetail() {
       setExitRequested(true);
       setShowExitModal(false);
     } catch {}
+  };
+
+  const handleSeatRemoval = async () => {
+    if (!id || seatRemovalSeat === "") return;
+    try {
+      await api.post(`/api/groups/${id}/seat-removal`, { seatNo: seatRemovalSeat, reason: seatRemovalReason });
+      setSeatRemovalDone(true);
+      setShowSeatRemovalModal(false);
+    } catch (err) {
+      alert((err as Error).message || "Failed to submit seat removal request");
+    }
   };
 
   const sendMsg = async () => {
@@ -309,8 +324,8 @@ export default function GroupDetail() {
               </div>
             </div>
 
-            {/* Exit + Upload row */}
-            <div className="flex gap-3 animate-fade-up delay-200">
+            {/* Exit + Seat Removal + Upload row */}
+            <div className="flex gap-3 animate-fade-up delay-200 flex-wrap">
               {exitRequested ? (
                 <div className="shrink-0 px-4 py-3 rounded-xl text-sm border border-amber-600/30 bg-amber-900/15 text-amber-400 flex items-center gap-2">
                   <AlertTriangle size={14} /> Exit Requested
@@ -319,6 +334,16 @@ export default function GroupDetail() {
                 <button onClick={() => setShowExitModal(true)}
                   className="shrink-0 px-4 py-3 rounded-xl text-sm font-bold border border-red-600/40 bg-red-900/20 text-red-400 hover:bg-red-900/35 transition-all flex items-center gap-2">
                   <LogOut size={14} /> Exit Group
+                </button>
+              )}
+              {seatRemovalDone ? (
+                <div className="shrink-0 px-4 py-3 rounded-xl text-sm border border-amber-600/30 bg-amber-900/15 text-amber-400 flex items-center gap-2">
+                  <AlertTriangle size={14} /> Removal Requested
+                </div>
+              ) : (
+                <button onClick={() => setShowSeatRemovalModal(true)}
+                  className="shrink-0 px-4 py-3 rounded-xl text-sm font-bold border border-orange-600/40 bg-orange-900/20 text-orange-400 hover:bg-orange-900/35 transition-all flex items-center gap-2">
+                  <MinusCircle size={14} /> Remove Seat
                 </button>
               )}
               <label className="flex-1 glass-card-static rounded-xl px-4 py-3 flex items-center justify-between cursor-pointer hover:border-gold/40 transition-all group">
@@ -576,6 +601,48 @@ export default function GroupDetail() {
                 <button onClick={confirmSlot} disabled={joinLoading}
                   className="btn-gold flex-1 py-2.5 rounded-lg text-sm font-bold disabled:opacity-60 flex items-center justify-center gap-2">
                   {joinLoading ? <span className="w-4 h-4 border-2 border-obsidian/30 border-t-obsidian rounded-full animate-spin" /> : "Confirm & Join"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ SEAT REMOVAL MODAL ══════════════════════════════════════════════ */}
+      {showSeatRemovalModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(6px)" }}>
+          <div className="w-full max-w-md glass-card-static rounded-2xl border border-orange-600/20 animate-scale-in">
+            <div className="flex items-center justify-between p-5 border-b border-orange-600/10">
+              <h3 className="text-orange-400 font-cinzel font-bold flex items-center gap-2"><MinusCircle size={16} /> Request Seat Removal</h3>
+              <button onClick={() => setShowSeatRemovalModal(false)}><X size={18} className="text-muted-foreground hover:text-foreground" /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              <p className="text-muted-foreground text-xs">Select the specific seat number you want removed. Admin will review and process your request.</p>
+              <div>
+                <label className="luxury-label">Seat Number to Remove</label>
+                <select value={seatRemovalSeat === "" ? "" : seatRemovalSeat}
+                  onChange={e => setSeatRemovalSeat(e.target.value === "" ? "" : Number(e.target.value))}
+                  className="luxury-input">
+                  <option value="">Select seat…</option>
+                  {slots.filter(s => s.status === "mine").map(s => (
+                    <option key={s.id} value={s.id}>Seat #{s.id}</option>
+                  ))}
+                  {slots.filter(s => s.status === "taken").map(s => (
+                    <option key={s.id} value={s.id}>Seat #{s.id} (taken)</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="luxury-label">Reason</label>
+                <textarea value={seatRemovalReason} onChange={e => setSeatRemovalReason(e.target.value)}
+                  placeholder="Explain why this seat should be removed..." className="luxury-input resize-none h-20" />
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setShowSeatRemovalModal(false)} className="btn-glass flex-1 py-2.5 rounded-lg text-sm font-semibold">Cancel</button>
+                <button onClick={handleSeatRemoval}
+                  disabled={seatRemovalSeat === ""}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-bold border border-orange-600/40 bg-orange-900/20 text-orange-400 hover:bg-orange-900/35 transition-all disabled:opacity-40">
+                  Submit Request
                 </button>
               </div>
             </div>

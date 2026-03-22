@@ -96,6 +96,7 @@ export interface Announcement {
   body: string;
   type: "announcement" | "promotion" | "server-update" | "group-message";
   imageUrl?: string;
+  videoUrl?: string;
   targetGroupId?: string;
   createdAt: string;
   adminName: string;
