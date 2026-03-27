@@ -27,10 +27,10 @@ const ANNOUNCEMENT_STYLE: Record<string, { border: string; bg: string; iconBg: s
 };
 
 export default function Landing() {
-  const { groups, leaderboard, announcements, contactInfo } = useApp();
+  const { groups, leaderboard, announcements, contactInfo, isLoggedIn } = useApp();
 
-  // Only public (non group-specific) announcements
-  const publicAnnouncements = announcements.filter(a => !a.targetGroupId);
+  // Only public (non group-specific) announcements — visible only to logged-in users
+  const publicAnnouncements = isLoggedIn ? announcements.filter(a => !a.targetGroupId) : [];
 
   return (
     <div className="relative min-h-screen">

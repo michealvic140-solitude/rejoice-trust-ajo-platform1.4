@@ -537,6 +537,7 @@ app.get("/api/support", authRequired, async (req, res) => {
     id: t.id, userId: t.user_id, username: t.username, subject: t.subject,
     message: t.message, status: t.status, adminReply: t.admin_reply,
     repliedAt: t.replied_at, createdAt: t.created_at,
+    attachmentUrl: t.attachment_url || null,
   })));
 });
 
@@ -735,6 +736,48 @@ app.patch("/api/admin/groups/:id", adminRequired, async (req, res) => {
       [name, description, contributionAmount, cycleType, bankName, accountNumber, accountName, termsText, groupId]);
     await addAuditLog(`Group ${name} updated by admin`, req.session.userId, req.session.username, "edit");
   }
+  res.json({ success: true });
+});
+
+// GET /api/admin/groups/:id/members  — full member list for admin
+app.get("/api/admin/groups/:id/members", adminRequired, async (req, res) => {
+  const { id } = req.params;
+  const { rows } = await db(`
+    SELECT s.seat_no, s.status, s.is_disbursed,
+           u.id as user_id, u.username, u.first_name, u.last_name, u.is_vip, u.role, u.trust_score, u.is_restricted, u.is_banned
+    FROM slots s
+    LEFT JOIN users u ON s.user_id = u.id
+    WHERE s.group_id = $1
+    ORDER BY s.seat_no ASC`, [id]);
+  res.json(rows.map(r => ({
+    seatNo: r.seat_no, status: r.status, isDisbursed: r.is_disbursed,
+    userId: r.user_id, username: r.username, fullName: r.first_name ? `${r.first_name} ${r.last_name}` : null,
+    isVip: r.is_vip, role: r.role, trustScore: r.trust_score ?? 80,
+    isRestricted: r.is_restricted, isBanned: r.is_banned
+  })));
+});
+
+// POST /api/admin/groups/:id/kick/:userId  — remove user from all seats in group
+app.post("/api/admin/groups/:id/kick/:userId", adminRequired, async (req, res) => {
+  const { id: groupId, userId } = req.params;
+  await db(`UPDATE slots SET user_id=NULL, status='available' WHERE group_id=$1 AND user_id=$2`, [groupId, userId]);
+  const { rows: g } = await db(`SELECT name FROM groups WHERE id=$1`, [groupId]);
+  const { rows: u } = await db(`SELECT first_name FROM users WHERE id=$1`, [userId]);
+  await addNotification(userId, `You have been removed from the group "${g[0]?.name}" by an administrator.`);
+  await addAuditLog(`Admin kicked user ${u[0]?.first_name || userId} from group ${g[0]?.name}`, req.session.userId, req.session.username, "kick");
+  res.json({ success: true });
+});
+
+// POST /api/admin/groups/:id/remove-seat/:seatNo  — remove specific seat
+app.post("/api/admin/groups/:id/remove-seat/:seatNo", adminRequired, async (req, res) => {
+  const { id: groupId, seatNo } = req.params;
+  const { rows: slot } = await db(`SELECT user_id FROM slots WHERE group_id=$1 AND seat_no=$2`, [groupId, parseInt(seatNo)]);
+  if (slot[0]?.user_id) {
+    const { rows: g } = await db(`SELECT name FROM groups WHERE id=$1`, [groupId]);
+    await addNotification(slot[0].user_id, `Your Seat #${seatNo} in "${g[0]?.name}" has been removed by an administrator.`);
+  }
+  await db(`UPDATE slots SET user_id=NULL, status='available' WHERE group_id=$1 AND seat_no=$2`, [groupId, parseInt(seatNo)]);
+  await addAuditLog(`Admin removed seat #${seatNo} in group ${groupId}`, req.session.userId, req.session.username, "edit");
   res.json({ success: true });
 });
 
@@ -965,5 +1008,16 @@ app.post("/api/support/with-attachment", authRequired, upload.single("attachment
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get("/api/health", (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 
+// ─── Serve built frontend in production ───────────────────────────────────────
+const distPath = path.join(__dirname, "../dist");
+if (process.env.NODE_ENV === "production" || fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api") || req.path.startsWith("/uploads")) return next();
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+}
+
 // ─── Start ────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => console.log(`🚀 Rejoice Ajo API running on port ${PORT}`));
+const listenPort = process.env.PORT || PORT;
+app.listen(listenPort, () => console.log(`🚀 Rejoice Ajo API running on port ${listenPort}`));

@@ -144,8 +144,12 @@ export default function Admin() {
   const [auditLogs, setAuditLogs]               = useState<Record<string, unknown>[]>([]);
   const [stats, setStats]                       = useState({ totalUsers: 0, activeGroups: 0, pendingPayments: 0, openTickets: 0, totalDefaulters: 0 });
   const [loading, setLoading]                   = useState(false);
-  const [showTrustScore, setShowTrustScore]     = useState<string | null>(null);
-  const [trustScoreValue, setTrustScoreValue]   = useState("");
+  const [showTrustScore, setShowTrustScore]       = useState<string | null>(null);
+  const [trustScoreValue, setTrustScoreValue]     = useState("");
+  const [showGroupMembers, setShowGroupMembers]   = useState<string | null>(null);
+  const [groupMembersList, setGroupMembersList]   = useState<Record<string, unknown>[]>([]);
+  const [showGroupEdit, setShowGroupEdit]         = useState<string | null>(null);
+  const [editGroupData, setEditGroupData]         = useState<Record<string, string>>({});
 
   // Modals
   const [showReminderModal, setShowReminderModal]   = useState(false);
@@ -282,6 +286,60 @@ export default function Admin() {
     try {
       await api.patch(`/api/admin/seat-removals/${id}`, { status });
       setSeatRemovals(prev => prev.map((r: Record<string, unknown>) => r.id === id ? { ...r, status } : r));
+    } catch (e) { alert((e as Error).message); }
+  };
+
+  const openGroupMembers = async (groupId: string) => {
+    setShowGroupMembers(groupId);
+    try {
+      const data = await api.get(`/api/admin/groups/${groupId}/members`);
+      setGroupMembersList(data);
+    } catch (e) { alert((e as Error).message); }
+  };
+
+  const kickFromGroup = async (groupId: string, userId: string) => {
+    if (!confirm("Remove this user from ALL their seats in this group?")) return;
+    try {
+      await api.post(`/api/admin/groups/${groupId}/kick/${userId}`, {});
+      const data = await api.get(`/api/admin/groups/${groupId}/members`);
+      setGroupMembersList(data);
+      await refreshGroups();
+    } catch (e) { alert((e as Error).message); }
+  };
+
+  const removeSeatAdmin = async (groupId: string, seatNo: number) => {
+    if (!confirm(`Clear seat #${seatNo}?`)) return;
+    try {
+      await api.post(`/api/admin/groups/${groupId}/remove-seat/${seatNo}`, {});
+      const data = await api.get(`/api/admin/groups/${groupId}/members`);
+      setGroupMembersList(data);
+      await refreshGroups();
+    } catch (e) { alert((e as Error).message); }
+  };
+
+  const openGroupEdit = (g: { id: string | number; name: string; description: string; contributionAmount: number; cycleType: string; bankName?: string; accountNumber?: string; accountName?: string; termsText?: string }) => {
+    setShowGroupEdit(String(g.id));
+    setEditGroupData({
+      name: g.name, description: g.description,
+      contributionAmount: String(g.contributionAmount), cycleType: g.cycleType,
+      bankName: g.bankName || "", accountNumber: g.accountNumber || "",
+      accountName: g.accountName || "", termsText: g.termsText || ""
+    });
+  };
+
+  const saveGroupEdit = async () => {
+    if (!showGroupEdit) return;
+    try {
+      await api.patch(`/api/admin/groups/${showGroupEdit}`, {
+        name: editGroupData.name, description: editGroupData.description,
+        contributionAmount: Number(editGroupData.contributionAmount),
+        cycleType: editGroupData.cycleType, bankName: editGroupData.bankName,
+        accountNumber: editGroupData.accountNumber, accountName: editGroupData.accountName,
+        termsText: editGroupData.termsText
+      });
+      await refreshGroups();
+      setShowGroupEdit(null);
+      alert("Group updated!");
     } catch (e) { alert((e as Error).message); }
   };
 
@@ -552,17 +610,23 @@ export default function Admin() {
                   </TD>
                   <TD>
                     <div className="flex flex-wrap gap-1">
-                      <Btn size="xs" variant={g.isLive ? "red" : "green"} onClick={() => doGroupAction(g.id, "live")}>
+                      <Btn size="xs" variant={g.isLive ? "red" : "green"} onClick={() => doGroupAction(String(g.id), "live")}>
                         {g.isLive ? "Deactivate" : "Go Live"}
                       </Btn>
-                      <Btn size="xs" variant={g.isLocked ? "gold" : "amber"} onClick={() => doGroupAction(g.id, "lock")}>
+                      <Btn size="xs" variant={g.isLocked ? "gold" : "amber"} onClick={() => doGroupAction(String(g.id), "lock")}>
                         {g.isLocked ? "Unlock" : "Lock"}
                       </Btn>
-                      <Btn size="xs" variant="glass" onClick={() => doGroupAction(g.id, "chatLock")}>
+                      <Btn size="xs" variant="glass" onClick={() => doGroupAction(String(g.id), "chatLock")}>
                         {g.chatLocked ? "Unlock Chat" : "Lock Chat"}
                       </Btn>
-                      <Btn size="xs" variant="gold" onClick={() => { const seatNo = parseInt(prompt("Seat # to disburse:") || "0"); if (seatNo) doDisbursement(g.id, seatNo); }}>
+                      <Btn size="xs" variant="gold" onClick={() => { const seatNo = parseInt(prompt("Seat # to disburse:") || "0"); if (seatNo) doDisbursement(String(g.id), seatNo); }}>
                         <Wallet size={10} />Disburse
+                      </Btn>
+                      <Btn size="xs" variant="blue" onClick={() => openGroupEdit(g)}>
+                        <Edit size={10} />Edit
+                      </Btn>
+                      <Btn size="xs" variant="glass" onClick={() => openGroupMembers(String(g.id))}>
+                        <Users size={10} />Members
                       </Btn>
                     </div>
                   </TD>
@@ -698,6 +762,11 @@ export default function Admin() {
                   <TD><p className="text-foreground font-semibold">{t.subject}</p></TD>
                   <TD>
                     <p className="text-muted-foreground max-w-xs truncate">{t.message}</p>
+                    {t.attachmentUrl && (
+                      <a href={t.attachmentUrl} target="_blank" rel="noopener noreferrer" className="mt-1 block">
+                        <img src={t.attachmentUrl} alt="attachment" className="max-h-24 max-w-[160px] rounded-lg border border-white/10 object-cover hover:scale-105 transition-transform cursor-zoom-in" />
+                      </a>
+                    )}
                     {t.adminReply && <p className="text-emerald-400 text-[10px] mt-1 italic">Reply: {t.adminReply}</p>}
                   </TD>
                   <TD><StatusBadge status={t.status} /></TD>
@@ -983,6 +1052,72 @@ export default function Admin() {
               )}
             </div>
             <div className="flex gap-3"><Btn variant="glass" onClick={() => { setShowAnnouncement(false); setAnnMediaType("none"); setAnnMediaFile(null); }}>Cancel</Btn><Btn variant="gold" onClick={submitAnnouncement}><Send size={12} />Publish</Btn></div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Group Members Modal ────────────────────────────────── */}
+      {showGroupMembers && (
+        <Modal title="Group Member Management" onClose={() => setShowGroupMembers(null)}>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            {groupMembersList.length === 0 ? (
+              <p className="text-muted-foreground text-sm text-center py-4">No members yet.</p>
+            ) : groupMembersList.map((m: Record<string, unknown>) => (
+              <div key={`${m.seatNo}-${m.userId}`} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
+                <div className="w-8 h-8 rounded-full bg-gold/20 flex items-center justify-center text-gold text-xs font-black">#{m.seatNo as number}</div>
+                <div className="flex-1 min-w-0">
+                  {m.userId ? (
+                    <>
+                      <p className="text-foreground text-xs font-semibold">@{m.username as string} {m.isVip && <span className="vip-badge text-[7px]">VIP</span>}</p>
+                      <p className="text-muted-foreground text-[10px]">{m.fullName as string} · Trust: {m.trustScore as number}%</p>
+                      <p className="text-muted-foreground text-[10px]">Status: <StatusBadge status={m.status as string || "active"} /></p>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground text-xs italic">Empty seat</p>
+                  )}
+                </div>
+                <div className="flex gap-1">
+                  {m.userId && (
+                    <Btn size="xs" variant="red" onClick={() => kickFromGroup(showGroupMembers, m.userId as string)}>
+                      <UserX size={9} />Kick
+                    </Btn>
+                  )}
+                  <Btn size="xs" variant="amber" onClick={() => removeSeatAdmin(showGroupMembers, m.seatNo as number)}>
+                    <MinusCircle size={9} />Clear
+                  </Btn>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Group Edit Modal ────────────────────────────────────── */}
+      {showGroupEdit && (
+        <Modal title="Edit Group" onClose={() => setShowGroupEdit(null)}>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2"><label className="luxury-label">Group Name</label>
+                <input value={editGroupData.name || ""} onChange={e => setEditGroupData(p => ({ ...p, name: e.target.value }))} className="luxury-input" /></div>
+              <div className="col-span-2"><label className="luxury-label">Description</label>
+                <textarea value={editGroupData.description || ""} onChange={e => setEditGroupData(p => ({ ...p, description: e.target.value }))} className="luxury-input resize-none h-14" /></div>
+              <div><label className="luxury-label">Contribution (₦)</label>
+                <input type="number" value={editGroupData.contributionAmount || ""} onChange={e => setEditGroupData(p => ({ ...p, contributionAmount: e.target.value }))} className="luxury-input" /></div>
+              <div><label className="luxury-label">Cycle</label>
+                <select value={editGroupData.cycleType || "monthly"} onChange={e => setEditGroupData(p => ({ ...p, cycleType: e.target.value }))} className="luxury-input">
+                  <option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option>
+                </select></div>
+              <div><label className="luxury-label">Bank Name</label>
+                <input value={editGroupData.bankName || ""} onChange={e => setEditGroupData(p => ({ ...p, bankName: e.target.value }))} className="luxury-input" /></div>
+              <div><label className="luxury-label">Account Number</label>
+                <input value={editGroupData.accountNumber || ""} onChange={e => setEditGroupData(p => ({ ...p, accountNumber: e.target.value }))} className="luxury-input" /></div>
+              <div className="col-span-2"><label className="luxury-label">Account Name</label>
+                <input value={editGroupData.accountName || ""} onChange={e => setEditGroupData(p => ({ ...p, accountName: e.target.value }))} className="luxury-input" /></div>
+            </div>
+            <div className="flex gap-3">
+              <Btn variant="glass" onClick={() => setShowGroupEdit(null)}>Cancel</Btn>
+              <Btn variant="gold" onClick={saveGroupEdit}><CheckCircle size={12} />Save Changes</Btn>
+            </div>
           </div>
         </Modal>
       )}

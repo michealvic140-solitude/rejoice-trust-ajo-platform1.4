@@ -112,6 +112,7 @@ export interface SupportTicket {
   createdAt: string;
   adminReply?: string;
   repliedAt?: string;
+  attachmentUrl?: string | null;
 }
 
 export interface ContactInfo {
