@@ -1,6 +1,6 @@
 import { Group } from "@/context/AppContext";
 import { Link } from "react-router-dom";
-import { Users, Calendar, TrendingUp } from "lucide-react";
+import { Users, Wallet, TrendingUp } from "lucide-react";
 
 interface GroupCardProps {
   group: Group;
@@ -8,48 +8,55 @@ interface GroupCardProps {
 
 export default function GroupCard({ group }: GroupCardProps) {
   const remaining = group.totalSlots - group.filledSlots;
-  const fillPercent = (group.filledSlots / group.totalSlots) * 100;
+  const fillPercent = Math.round((group.filledSlots / group.totalSlots) * 100);
+  const totalPayout = group.contributionAmount * group.totalSlots;
+  const cycleLabel = group.cycleType === "daily" ? "day" : group.cycleType === "weekly" ? "week" : "month";
 
-  const cycleColors = {
-    daily: "text-emerald-400",
-    weekly: "text-sky-400",
-    monthly: "text-purple-400",
+  const cycleBadgeClass: Record<string, string> = {
+    daily: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+    weekly: "text-sky-400 bg-sky-400/10 border-sky-400/20",
+    monthly: "text-purple-400 bg-purple-400/10 border-purple-400/20",
   };
 
   return (
-    <div className="glass-card p-6 group cursor-pointer">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <h3 className="gold-gradient-text text-lg font-cinzel font-bold leading-tight">{group.name}</h3>
-          <p className="text-muted-foreground text-xs mt-1 line-clamp-2">{group.description}</p>
+    <div className="glass-card p-5 flex flex-col gap-4">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <h3 className="gold-gradient-text text-base font-cinzel font-bold leading-tight truncate">{group.name}</h3>
+          <p className="text-muted-foreground text-[11px] mt-0.5 line-clamp-1">{group.description}</p>
         </div>
-        {group.isLive && (
-          <span className="live-badge ml-3 shrink-0">● LIVE</span>
-        )}
+        {group.isLive && <span className="live-badge shrink-0 text-[9px]">● LIVE</span>}
       </div>
 
-      {/* Contribution */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <p className="text-muted-foreground text-[11px] uppercase tracking-widest">Contribution</p>
-          <p className="text-foreground font-bold text-xl">₦{group.contributionAmount.toLocaleString()}</p>
-        </div>
-        <div className="text-right">
-          <p className="text-muted-foreground text-[11px] uppercase tracking-widest">Cycle</p>
-          <p className={`font-semibold capitalize text-sm ${cycleColors[group.cycleType]}`}>
-            <Calendar size={12} className="inline mr-1" />
-            {group.cycleType}
+      {/* Pack summary banner */}
+      <div className="rounded-xl bg-gold/[0.08] border border-gold/20 px-4 py-2.5 flex items-center gap-3">
+        <Wallet size={15} className="text-gold shrink-0" />
+        <div className="min-w-0">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Deposit to Collect</p>
+          <p className="text-foreground font-bold text-sm leading-snug">
+            ₦{group.contributionAmount.toLocaleString()}
+            <span className="text-muted-foreground font-normal text-xs">/{cycleLabel} → </span>
+            <span className="text-gold">₦{totalPayout.toLocaleString()}</span>
           </p>
         </div>
       </div>
 
-      {/* Slots Progress */}
-      <div className="mb-4">
-        <div className="flex justify-between text-xs mb-1">
-          <span className="text-muted-foreground flex items-center gap-1">
-            <Users size={11} /> {group.filledSlots} / {group.totalSlots} slots
-          </span>
-          <span className="text-gold">{remaining} remaining</span>
+      {/* Cycle + slots row */}
+      <div className="flex items-center justify-between">
+        <span className={`text-[10px] font-semibold capitalize px-2.5 py-1 rounded-full border ${cycleBadgeClass[group.cycleType] || cycleBadgeClass.monthly}`}>
+          {group.cycleType}
+        </span>
+        <span className="text-muted-foreground text-xs flex items-center gap-1">
+          <Users size={11} />{group.filledSlots}/{group.totalSlots} filled
+        </span>
+      </div>
+
+      {/* Progress */}
+      <div>
+        <div className="flex justify-between text-[10px] mb-1">
+          <span className="text-muted-foreground">{fillPercent}% full</span>
+          <span className={remaining === 0 ? "text-red-400" : "text-gold"}>{remaining} seats left</span>
         </div>
         <div className="h-1.5 bg-muted rounded-full overflow-hidden">
           <div
@@ -64,9 +71,15 @@ export default function GroupCard({ group }: GroupCardProps) {
         </div>
       </div>
 
+      {/* Collect info */}
+      <div className="flex items-center gap-1.5 text-[10px] text-emerald-400/80">
+        <TrendingUp size={11} />
+        <span>Collect <strong className="text-emerald-400">₦{totalPayout.toLocaleString()}</strong> when your seat is disbursed</span>
+      </div>
+
       {/* CTA */}
-      <Link to={`/groups/${group.id}`} className="btn-gold w-full block text-center py-2.5 rounded-lg text-sm font-semibold">
-        View Group
+      <Link to={`/groups/${group.id}`} className="btn-gold w-full block text-center py-2.5 rounded-lg text-sm font-semibold mt-auto">
+        {remaining === 0 ? "View Group (Full)" : "Join This Group"}
       </Link>
     </div>
   );

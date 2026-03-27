@@ -148,8 +148,11 @@ export default function Admin() {
   const [trustScoreValue, setTrustScoreValue]     = useState("");
   const [showGroupMembers, setShowGroupMembers]   = useState<string | null>(null);
   const [groupMembersList, setGroupMembersList]   = useState<Record<string, unknown>[]>([]);
-  const [showGroupEdit, setShowGroupEdit]         = useState<string | null>(null);
-  const [editGroupData, setEditGroupData]         = useState<Record<string, string>>({});
+  const [showGroupEdit, setShowGroupEdit]             = useState<string | null>(null);
+  const [editGroupData, setEditGroupData]             = useState<Record<string, string>>({});
+  const [showDisbursementModal, setShowDisbursementModal] = useState<string | null>(null);
+  const [disburseSlots, setDisburseSlots]             = useState<Record<string, unknown>[]>([]);
+  const [gDisbDay, setGDisbDay]                       = useState("");
 
   // Modals
   const [showReminderModal, setShowReminderModal]   = useState(false);
@@ -317,6 +320,14 @@ export default function Admin() {
     } catch (e) { alert((e as Error).message); }
   };
 
+  const openDisbursementModal = async (groupId: string) => {
+    setShowDisbursementModal(groupId);
+    try {
+      const data = await api.get(`/api/admin/groups/${groupId}/disburse-eligible`);
+      setDisburseSlots(data);
+    } catch (e) { alert((e as Error).message); }
+  };
+
   const openGroupEdit = (g: { id: string | number; name: string; description: string; contributionAmount: number; cycleType: string; bankName?: string; accountNumber?: string; accountName?: string; termsText?: string }) => {
     setShowGroupEdit(String(g.id));
     setEditGroupData({
@@ -406,10 +417,15 @@ export default function Admin() {
 
   const createGroup = async () => {
     try {
-      await api.post("/api/admin/groups", { name: gName, description: gDesc, contributionAmount: Number(gAmt), cycleType: gCycle, totalSlots: Number(gSlots), bankName: gBank, accountNumber: gAccNum, accountName: gAccName, termsText: gTerms });
+      await api.post("/api/admin/groups", {
+        name: gName, description: gDesc, contributionAmount: Number(gAmt),
+        cycleType: gCycle, totalSlots: Number(gSlots), bankName: gBank,
+        accountNumber: gAccNum, accountName: gAccName, termsText: gTerms,
+        disbursementDay: gDisbDay || null,
+      });
       await refreshGroups();
       setShowCreateGroup(false);
-      setGName(""); setGDesc(""); setGAmt(""); setGBank(""); setGAccNum(""); setGAccName(""); setGTerms("");
+      setGName(""); setGDesc(""); setGAmt(""); setGBank(""); setGAccNum(""); setGAccName(""); setGTerms(""); setGDisbDay("");
     } catch (e) { alert((e as Error).message); }
   };
 
@@ -619,7 +635,7 @@ export default function Admin() {
                       <Btn size="xs" variant="glass" onClick={() => doGroupAction(String(g.id), "chatLock")}>
                         {g.chatLocked ? "Unlock Chat" : "Lock Chat"}
                       </Btn>
-                      <Btn size="xs" variant="gold" onClick={() => { const seatNo = parseInt(prompt("Seat # to disburse:") || "0"); if (seatNo) doDisbursement(String(g.id), seatNo); }}>
+                      <Btn size="xs" variant="gold" onClick={() => openDisbursementModal(String(g.id))}>
                         <Wallet size={10} />Disburse
                       </Btn>
                       <Btn size="xs" variant="blue" onClick={() => openGroupEdit(g)}>
@@ -651,7 +667,7 @@ export default function Admin() {
                   </div>
                   <div className="flex gap-2">
                     <Btn variant="red" onClick={() => doGroupAction(g.id, "live")}>Deactivate</Btn>
-                    <Btn variant="gold" onClick={() => { const seatNo = parseInt(prompt("Seat # to disburse:") || "0"); if (seatNo) doDisbursement(g.id, seatNo); }}>
+                    <Btn variant="gold" onClick={() => openDisbursementModal(String(g.id))}>
                       <Wallet size={12} />Record Disbursement
                     </Btn>
                   </div>
@@ -1003,6 +1019,24 @@ export default function Admin() {
               <div><label className="luxury-label">Contribution Amount (₦)</label><input type="number" value={gAmt} onChange={e => setGAmt(e.target.value)} className="luxury-input" /></div>
               <div><label className="luxury-label">Cycle</label><select value={gCycle} onChange={e => setGCycle(e.target.value)} className="luxury-input"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></div>
               <div><label className="luxury-label">Total Slots</label><input type="number" value={gSlots} onChange={e => setGSlots(e.target.value)} className="luxury-input" /></div>
+              <div>
+                <label className="luxury-label">
+                  Disbursement Day
+                  <span className="text-muted-foreground font-normal ml-1">
+                    ({gCycle === "monthly" ? "day 1–28 of month" : gCycle === "weekly" ? "Mon–Sun" : "every N days"})
+                  </span>
+                </label>
+                {gCycle === "monthly" ? (
+                  <input type="number" min="1" max="28" placeholder="e.g. 15" value={gDisbDay} onChange={e => setGDisbDay(e.target.value)} className="luxury-input" />
+                ) : gCycle === "weekly" ? (
+                  <select value={gDisbDay} onChange={e => setGDisbDay(e.target.value)} className="luxury-input">
+                    <option value="">Select day</option>
+                    {["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                ) : (
+                  <input type="number" min="1" placeholder="e.g. 1" value={gDisbDay} onChange={e => setGDisbDay(e.target.value)} className="luxury-input" />
+                )}
+              </div>
               <div><label className="luxury-label">Bank Name</label><input value={gBank} onChange={e => setGBank(e.target.value)} className="luxury-input" /></div>
               <div><label className="luxury-label">Account Number</label><input value={gAccNum} onChange={e => setGAccNum(e.target.value)} className="luxury-input" /></div>
               <div><label className="luxury-label">Account Name</label><input value={gAccName} onChange={e => setGAccName(e.target.value)} className="luxury-input" /></div>
@@ -1052,6 +1086,43 @@ export default function Admin() {
               )}
             </div>
             <div className="flex gap-3"><Btn variant="glass" onClick={() => { setShowAnnouncement(false); setAnnMediaType("none"); setAnnMediaFile(null); }}>Cancel</Btn><Btn variant="gold" onClick={submitAnnouncement}><Send size={12} />Publish</Btn></div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Disbursement Modal ─────────────────────────────────── */}
+      {showDisbursementModal && (
+        <Modal title="Record Disbursement" onClose={() => setShowDisbursementModal(null)}>
+          <div className="space-y-2 max-h-[55vh] overflow-y-auto">
+            <p className="text-muted-foreground text-xs mb-3">Select a seat to mark as disbursed. The member will be notified automatically.</p>
+            {disburseSlots.length === 0 ? (
+              <p className="text-muted-foreground text-sm text-center py-4">No occupied seats found in this group.</p>
+            ) : disburseSlots.map((s: Record<string, unknown>) => (
+              <div key={s.seatNo as number} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${s.isDisbursed ? "bg-emerald-500/5 border-emerald-500/20" : "bg-white/5 border-white/10 hover:border-gold/30"}`}>
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${s.isDisbursed ? "bg-emerald-500/20 text-emerald-400" : "bg-gold/20 text-gold"}`}>
+                  #{s.seatNo as number}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-foreground text-xs font-semibold">@{s.username as string}</p>
+                  <p className="text-muted-foreground text-[10px]">{s.fullName as string}</p>
+                  {s.isDisbursed && (
+                    <p className="text-emerald-400 text-[9px] mt-0.5">✓ Disbursed {s.disbursedAt ? new Date(s.disbursedAt as string).toLocaleDateString() : ""}</p>
+                  )}
+                </div>
+                {!s.isDisbursed ? (
+                  <Btn size="xs" variant="gold" onClick={async () => {
+                    if (!confirm(`Disburse to @${s.username} (Seat #${s.seatNo})?`)) return;
+                    await doDisbursement(showDisbursementModal, s.seatNo as number);
+                    const data = await api.get(`/api/admin/groups/${showDisbursementModal}/disburse-eligible`);
+                    setDisburseSlots(data);
+                  }}>
+                    <Wallet size={9} />Disburse
+                  </Btn>
+                ) : (
+                  <span className="text-emerald-400 text-[10px] font-semibold">Done ✓</span>
+                )}
+              </div>
+            ))}
           </div>
         </Modal>
       )}

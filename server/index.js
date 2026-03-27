@@ -939,6 +939,38 @@ app.post("/api/admin/check-defaulters", adminRequired, async (req, res) => {
   res.json({ success: true, count });
 });
 
+// ─── Guide Tips ───────────────────────────────────────────────────────────────
+app.get("/api/guide-tips", async (req, res) => {
+  const { rows } = await db(`SELECT value FROM platform_settings WHERE key='guide_tips'`);
+  if (!rows[0]) return res.json({ tips: [] });
+  try { res.json({ tips: JSON.parse(rows[0].value) }); } catch { res.json({ tips: [] }); }
+});
+
+app.patch("/api/admin/guide-tips", adminRequired, async (req, res) => {
+  const { tips } = req.body;
+  await db(`INSERT INTO platform_settings (key, value) VALUES ('guide_tips', $1) ON CONFLICT (key) DO UPDATE SET value=$1, updated_at=NOW()`, [JSON.stringify(tips)]);
+  res.json({ success: true });
+});
+
+// GET eligible disbursement seats for a group
+app.get("/api/admin/groups/:id/disburse-eligible", adminRequired, async (req, res) => {
+  const { id } = req.params;
+  const { rows } = await db(`
+    SELECT s.seat_no, s.is_disbursed, s.disbursed_at,
+           u.id as user_id, u.username, u.first_name, u.last_name, u.phone
+    FROM slots s
+    LEFT JOIN users u ON s.user_id = u.id
+    WHERE s.group_id = $1 AND s.user_id IS NOT NULL AND s.status != 'available'
+    ORDER BY s.seat_no ASC`, [id]);
+  res.json(rows.map(r => ({
+    seatNo: r.seat_no, isDisbursed: r.is_disbursed,
+    disbursedAt: r.disbursed_at,
+    userId: r.user_id, username: r.username,
+    fullName: r.first_name ? `${r.first_name} ${r.last_name}` : null,
+    phone: r.phone,
+  })));
+});
+
 // ─── Maintenance mode ─────────────────────────────────────────────────────────
 app.get("/api/maintenance", async (req, res) => {
   const { rows } = await db(`SELECT value FROM platform_settings WHERE key='maintenance_mode'`);

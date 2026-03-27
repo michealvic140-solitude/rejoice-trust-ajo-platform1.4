@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Shield, Trophy, Users, Zap, Star, TrendingUp, Phone, Mail, MessageSquare, Facebook, Megaphone, Info, Tag, Server } from "lucide-react";
+import { ArrowRight, Shield, Trophy, Users, Zap, Star, TrendingUp, Phone, Mail, MessageSquare, Facebook, Megaphone, Info, Tag, Server, BookOpen } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import GroupCard from "@/components/GroupCard";
 import ParticleBackground from "@/components/ParticleBackground";
-import heroBg from "@/assets/hero-bg.jpg";
+import HeroSlideshow from "@/components/HeroSlideshow";
 
 const features = [
   { icon: Shield,     title: "Secure & Trusted",    desc: "Every transaction is verified by admin before approval. Full audit trail." },
@@ -37,11 +37,8 @@ export default function Landing() {
       <ParticleBackground />
 
       {/* ══════════════════ HERO ══════════════════ */}
-      <section className="relative pt-32 pb-24 px-4 overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center opacity-20"
-          style={{ backgroundImage: `url(${heroBg})` }} />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/40 to-background" />
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[radial-gradient(ellipse,rgba(234,179,8,0.06)_0%,transparent_70%)] pointer-events-none" />
+      <section className="relative pt-32 pb-32 px-4 overflow-hidden">
+        <HeroSlideshow />
 
         <div className="relative max-w-5xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 glass-card-static px-4 py-2 rounded-full mb-8 animate-fade-up">
